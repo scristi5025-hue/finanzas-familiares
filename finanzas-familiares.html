@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
+<title>Finanzas Familiares</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #085041;
+    --red: #E24B4A; --red-light: #FCEBEB; --red-dark: #A32D2D;
+    --blue: #378ADD; --blue-light: #E6F1FB; --blue-dark: #0C447C;
+    --pink-light: #FBEAF0; --pink-dark: #72243E;
+    --amber: #EF9F27; --amber-light: #FAEEDA; --amber-dark: #633806;
+    --purple: #7F77DD;
+    --bg: #F8F8F6; --surface: #FFFFFF; --surface2: #F2F2F0;
+    --border: rgba(0,0,0,0.09); --border2: rgba(0,0,0,0.15);
+    --text: #1A1A18; --text2: #6B6B68; --text3: #9B9B98;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+
+  /* LOGIN */
+  #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+  .login-logo { width: 64px; height: 64px; border-radius: 16px; background: var(--green); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+  .login-logo svg { width: 32px; height: 32px; fill: none; stroke: white; stroke-width: 2; stroke-linecap: round; }
+  .login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: var(--text2); margin-bottom: 2rem; text-align: center; }
+  .user-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 320px; }
+  .user-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.2rem 1rem; text-align: center; cursor: pointer; transition: all .15s; }
+  .user-card:active { transform: scale(0.97); }
+  .user-card.s:hover, .user-card.s:focus { border-color: var(--blue); background: var(--blue-light); }
+  .user-card.p:hover, .user-card.p:focus { border-color: #ED93B1; background: var(--pink-light); }
+  .user-avatar-big { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; margin: 0 auto 10px; }
+  .av-s { background: var(--blue-light); color: var(--blue-dark); }
+  .av-p { background: var(--pink-light); color: var(--pink-dark); }
+  .av-f { background: var(--green-light); color: var(--green-dark); }
+  .user-card-name { font-size: 15px; font-weight: 500; }
+
+  /* HEADER */
+  #app { display: none; }
+  .header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 12px 16px 0; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .header-user { display: flex; align-items: center; gap: 8px; }
+  .avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .header-name { font-size: 15px; font-weight: 500; }
+  .sync-status { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .sync-dot.offline { background: var(--red); }
+  .logout-btn { font-size: 13px; color: var(--text2); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; padding: 10px 14px; font-size: 13px; border: none; background: none; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: inherit; white-space: nowrap; transition: color .15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  /* SECTIONS */
+  .sec { display: none; padding: 16px; }
+  .sec.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .card-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); margin-bottom: 10px; }
+
+  /* METRIC GRID */
+  .mg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .mc { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .mc-l { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .mc-v { font-size: 17px; font-weight: 600; }
+
+  /* FORM */
+  .form-field { margin-bottom: 10px; }
+  .form-field label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+  .form-field input, .form-field select { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 15px; font-family: inherit; -webkit-appearance: none; appearance: none; }
+  .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--green); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* BUTTONS */
+  .btn { padding: 11px 18px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--surface); color: var(--text); font-size: 14px; cursor: pointer; font-family: inherit; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary { background: var(--green); color: white; border-color: var(--green); font-weight: 500; width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+  .btn.secondary { background: var(--amber-light); color: var(--amber-dark); border-color: var(--amber); }
+  .btn.danger-btn { background: var(--red-light); color: var(--red-dark); border-color: #F09595; padding: 6px 10px; font-size: 12px; }
+
+  /* SEG */
+  .seg { display: flex; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 12px; }
+  .seg button { flex: 1; padding: 9px 8px; border: none; background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; font-family: inherit; border-right: 0.5px solid var(--border); transition: all .15s; }
+  .seg button:last-child { border-right: none; }
+  .seg button.on { background: var(--surface2); color: var(--text); font-weight: 500; }
+
+  /* VIEW SELECTOR */
+  .view-sel { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .vs { padding: 6px 14px; border-radius: 20px; border: 0.5px solid var(--border2); font-size: 13px; cursor: pointer; background: var(--surface); color: var(--text2); display: flex; align-items: center; gap: 5px; transition: all .15s; font-family: inherit; }
+  .vs.on-s { background: var(--blue-light); border-color: #85B7EB; color: var(--blue-dark); }
+  .vs.on-p { background: var(--pink-light); border-color: #ED93B1; color: var(--pink-dark); }
+  .vs.on-f { background: var(--green-light); border-color: #5DCAA5; color: var(--green-dark); }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+
+  /* HISTORY ROWS */
+  .hist-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .hist-info { flex: 1; min-width: 0; }
+  .hist-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .hist-amount { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .hist-del { background: none; border: none; cursor: pointer; color: var(--text3); padding: 4px; font-size: 16px; flex-shrink: 0; }
+
+  /* CIERRE ROW */
+  .cierre-row { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
+  .cierre-mes { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .cierre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px; color: var(--text2); }
+  .cierre-grid strong { color: var(--text); }
+
+  /* BAR CHART */
+  .bcat { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .bfw { flex: 1; background: var(--surface2); border-radius: 3px; height: 6px; overflow: hidden; }
+  .bf { height: 100%; border-radius: 3px; }
+  .bl { min-width: 80px; font-size: 12px; color: var(--text2); }
+  .ba { min-width: 64px; text-align: right; font-weight: 500; font-size: 12px; }
+
+  /* AHORRO BAR */
+  .arow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+  .arow:last-child { border-bottom: none; }
+  .an { min-width: 50px; font-size: 12px; font-weight: 500; }
+  .abw { flex: 1; position: relative; height: 5px; background: var(--surface2); border-radius: 3px; }
+  .ab { position: absolute; left: 0; top: 0; height: 5px; border-radius: 3px; }
+  .av { min-width: 70px; text-align: right; font-size: 12px; font-weight: 600; }
+
+  /* PROJ */
+  .hz-toggle { display: flex; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 12px; }
+  .hz-toggle button { flex: 1; padding: 9px; border: none; background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; font-family: inherit; border-right: 0.5px solid var(--border); }
+  .hz-toggle button:last-child { border-right: none; }
+  .hz-toggle button.on { background: var(--text); color: var(--bg); font-weight: 500; }
+
+  .proj-info { background: var(--amber-light); border: 0.5px solid var(--amber); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: var(--amber-dark); line-height: 1.5; }
+
+  /* PERIOD BTNS */
+  .period-btns { display: flex; gap: 6px; margin-bottom: 12px; }
+  .period-btns button { padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 12px; cursor: pointer; font-family: inherit; }
+  .period-btns button.on { background: var(--surface2); color: var(--text); font-weight: 500; }
+
+  /* TABLE */
+  .proj-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .proj-table table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 400px; }
+  .proj-table th { text-align: left; color: var(--text2); font-weight: 500; padding: 5px 6px; border-bottom: 0.5px solid var(--border); }
+  .proj-table td { padding: 6px 6px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+  .proj-table tr:last-child td { border-bottom: none; }
+  .proj-table tr.milestone td { background: var(--surface2); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 2rem 1rem; color: var(--text2); font-size: 14px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1A1A18; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  /* SPINNER */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* INV SECTION */
+  .inv-section { border-top: 0.5px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .inv-label { display: inline-block; background: var(--amber-light); color: var(--amber-dark); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; margin-bottom: 10px; }
+
+  /* SPLIT */
+  .split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  @media (max-width: 400px) {
+    .split2 { grid-template-columns: 1fr; }
+    .form-row3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+  </div>
+  <div class="login-title">Finanzas Familiares</div>
+  <div class="login-sub">¿Quién eres hoy?</div>
+  <div class="user-cards">
+    <div class="user-card s" onclick="login('s')">
+      <div class="user-avatar-big av-s" id="login-av-s">S</div>
+      <div class="user-card-name" id="login-name-s">Sebastián</div>
+    </div>
+    <div class="user-card p" onclick="login('p')">
+      <div class="user-avatar-big av-p" id="login-av-p">C</div>
+      <div class="user-card-name" id="login-name-p">Cata</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-user">
+        <div class="avatar-sm" id="hdr-avatar"></div>
+        <div>
+          <div class="header-name" id="hdr-name"></div>
+          <div class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Sincronizado</span></div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('gastos')">Gastos</button>
+      <button class="tab" onclick="switchTab('cierre')">Cierre</button>
+      <button class="tab" onclick="switchTab('analisis')">Análisis</button>
+      <button class="tab" onclick="switchTab('proyeccion')">Proyección</button>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div id="tab-gastos" class="sec active">
+    <div class="card">
+      <div class="card-title">Agregar movimiento</div>
+      <div class="form-row" style="margin-bottom:10px">
+        <div class="form-field" style="margin:0"><label>Fecha</label><input type="date" id="f-fecha"></div>
+        <div class="form-field" style="margin:0"><label>Monto (CLP)</label><input type="number" id="f-monto" placeholder="0" inputmode="numeric"></div>
+      </div>
+      <div class="form-field"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Supermercado"></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-field" style="margin:0"><label>Categoría</label>
+          <select id="f-cat">
+            <option value="Vivienda">Vivienda</option><option value="Alimentación">Alimentación</option>
+            <option value="Transporte">Transporte</option><option value="Salud">Salud</option>
+            <option value="Entretenimiento">Entretenimiento</option><option value="Ropa">Ropa</option>
+            <option value="Educación">Educación</option><option value="Inversiones">Inversiones</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-field" style="margin:0"><label>Tipo</label>
+          <select id="f-tipo"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Asignar a</label>
+        <div class="seg">
+          <button id="usr-s" class="on" onclick="setEntryUser('s')"><span id="seg-s-label">Sebastián</span></button>
+          <button id="usr-p" onclick="setEntryUser('p')"><span id="seg-p-label">Cata</span></button>
+        </div>
+      </div>
+      <button class="btn primary" onclick="addEntry()" id="add-btn">Agregar</button>
+    </div>
+
+    <div class="mg" id="mg-gastos"></div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-title" style="margin:0">Historial</div>
+        <select id="fi-mes" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit" onchange="renderHistory()"></select>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <select id="fi-tipo" style="flex:1;font-size:12px;padding:5px 8px;border:0.5px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit" onchange="renderHistory()">
+          <option value="">Todo</option><option value="gasto">Gastos</option><option value="ingreso">Ingresos</option>
+        </select>
+        <select id="fi-usr" style="flex:1;font-size:12px;padding:5px 8px;border:0.5px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit" onchange="renderHistory()">
+          <option value="">Todos</option><option value="s" id="fi-s-opt">Sebastián</option><option value="p" id="fi-p-opt">Cata</option>
+        </select>
+      </div>
+      <div id="hist-list"></div>
+    </div>
+  </div>
+
+  <!-- CIERRE -->
+  <div id="tab-cierre" class="sec">
+    <div class="card">
+      <div class="card-title">Registrar cierre mensual</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Al cerrar el mes capturas el ingreso real de cada uno. Los gastos ya están registrados. Este cierre alimenta la proyección.</p>
+      <div class="form-field"><label>Mes a cerrar</label><select id="c-mes"></select></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-field" style="margin:0"><label>Ingreso real <span id="c-lbl-s" style="color:var(--blue-dark)">Sebastián</span></label><input type="number" id="c-ing-s" placeholder="0" inputmode="numeric"></div>
+        <div class="form-field" style="margin:0"><label>Ingreso real <span id="c-lbl-p" style="color:var(--pink-dark)">Cata</span></label><input type="number" id="c-ing-p" placeholder="0" inputmode="numeric"></div>
+      </div>
+      <div id="cierre-preview" style="margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn secondary" onclick="previewCierre()" style="flex:1;justify-content:center">Vista previa</button>
+        <button class="btn primary" onclick="confirmarCierre()" style="flex:1">Confirmar</button>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Historial de cierres</div><div id="cierres-list"></div></div>
+  </div>
+
+  <!-- ANÁLISIS -->
+  <div id="tab-analisis" class="sec">
+    <div class="view-sel">
+      <button class="vs on-s" id="av-s" onclick="setAView('s',this)"><span class="avatar-sm av-s" style="width:18px;height:18px;font-size:9px" id="av-s-btn">S</span><span id="av-s-lbl">Sebastián</span></button>
+      <button class="vs" id="av-p" onclick="setAView('p',this)"><span class="avatar-sm av-p" style="width:18px;height:18px;font-size:9px" id="av-p-btn">C</span><span id="av-p-lbl">Cata</span></button>
+      <button class="vs" id="av-f" onclick="setAView('f',this)"><span class="avatar-sm av-f" style="width:18px;height:18px;font-size:9px">F</span>Familiar</button>
+    </div>
+    <div class="period-btns">
+      <button class="on" id="ap-3m" onclick="setAPeriod(3,this)">3 meses</button>
+      <button id="ap-6m" onclick="setAPeriod(6,this)">6 meses</button>
+      <button id="ap-12m" onclick="setAPeriod(12,this)">12 meses</button>
+      <button id="ap-all" onclick="setAPeriod(0,this)">Todo</button>
+    </div>
+    <div class="mg" id="mg-analisis"></div>
+    <div class="card"><div class="card-title">Gastos por categoría</div><div id="cat-bars"></div></div>
+    <div class="card"><div class="card-title">Evolución mensual</div><div style="position:relative;height:200px"><canvas id="evo-chart" role="img" aria-label="Evolución mensual">Cargando...</canvas></div></div>
+    <div class="card"><div class="card-title">Ahorro mensual</div><div id="ahorro-bars"></div></div>
+  </div>
+
+  <!-- PROYECCIÓN -->
+  <div id="tab-proyeccion" class="sec">
+    <div class="view-sel">
+      <button class="vs on-s" id="pv-s" onclick="setPView('s',this)"><span class="avatar-sm av-s" style="width:18px;height:18px;font-size:9px" id="pv-s-btn">S</span><span id="pv-s-lbl">Sebastián</span></button>
+      <button class="vs" id="pv-p" onclick="setPView('p',this)"><span class="avatar-sm av-p" style="width:18px;height:18px;font-size:9px" id="pv-p-btn">C</span><span id="pv-p-lbl">Cata</span></button>
+      <button class="vs" id="pv-f" onclick="setPView('f',this)"><span class="avatar-sm av-f" style="width:18px;height:18px;font-size:9px">F</span>Familiar</button>
+    </div>
+    <div id="proj-info"></div>
+    <div id="proj-forms"></div>
+    <div class="hz-toggle">
+      <button class="on" id="hz-12m" onclick="setHorizon('12m',this)">12 meses</button>
+      <button id="hz-20y" onclick="setHorizon('20y',this)">20 años</button>
+    </div>
+    <div class="mg" id="mg-proj"></div>
+    <div class="card">
+      <div class="card-title" id="proj-chart-title">Patrimonio proyectado</div>
+      <div style="display:flex;gap:10px;margin-bottom:8px;font-size:11px;flex-wrap:wrap" id="proj-legend"></div>
+      <div style="position:relative;height:240px"><canvas id="proj-chart" role="img" aria-label="Proyección patrimonio">Cargando...</canvas></div>
+    </div>
+    <div class="card"><div class="card-title" id="proj-table-title">Detalle</div><div class="proj-table" id="proj-table"></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC3_U0Sd9bX3LfqpinOaOAuCvXDE7yVEP8",
+  authDomain: "finanzas-familiares-e3d59.firebaseapp.com",
+  projectId: "finanzas-familiares-e3d59",
+  storageBucket: "finanzas-familiares-e3d59.firebasestorage.app",
+  messagingSenderId: "893058860792",
+  appId: "1:893058860792:web:0768ce8c937e37c2e01d0d",
+  databaseURL: "https://finanzas-familiares-e3d59-default-rtdb.firebaseio.com"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentUser = null;
+let entries = [];
+let cierres = [];
+let config = {
+  names: { s: 'Sebastián', p: 'Cata' },
+  inv: { s: { saldo: 0, tasa: 0, aporte: 0, saldo_cuenta: 0 }, p: { saldo: 0, tasa: 0, aporte: 0, saldo_cuenta: 0 } },
+  meta: { s: 0, p: 0 },
+  growth: { s: { ing: 0, gst: 0 }, p: { ing: 0, gst: 0 } }
+};
+let entryUser = 's';
+let aView = 's', aperiod = 3, pView = 's', horizon = '12m';
+let evoChart = null, projChart = null;
+let unsubEntries = null, unsubCierres = null, unsubConfig = null;
+
+const CAT_COLORS = { 'Vivienda':'#378ADD','Alimentación':'#1D9E75','Transporte':'#BA7517','Salud':'#D4537E','Entretenimiento':'#7F77DD','Ropa':'#D85A30','Educación':'#639922','Inversiones':'#0F6E56','Otro':'#888780' };
+const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function fmt(n) { return Math.round(n).toLocaleString('es-CL'); }
+function fmtC(n) { return '$' + fmt(n); }
+function fmtM(n) { const a = Math.abs(n); if (a >= 1e9) return '$' + Math.round(n/1e9*10)/10 + 'B'; if (a >= 1e6) return '$' + Math.round(n/1e6) + 'M'; if (a >= 1e3) return '$' + Math.round(n/1e3) + 'K'; return '$' + Math.round(n); }
+function mesLabel(ym) { return new Date(ym+'-02').toLocaleDateString('es-CL',{month:'long',year:'numeric'}); }
+function mesShort(ym) { const d = new Date(ym+'-02'); return MESES_ES[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+function getName(u) { return config.names[u] || (u === 's' ? 'Sebastián' : 'Cata'); }
+function setSyncStatus(online) {
+  document.getElementById('sync-dot').className = 'sync-dot' + (online ? '' : ' offline');
+  document.getElementById('sync-label').textContent = online ? 'Sincronizado' : 'Sin conexión';
+}
+
+// ─── FIREBASE OPS ─────────────────────────────────────────────────────────────
+async function fbSet(path, data) {
+  try { await set(ref(db, path), data); setSyncStatus(true); return true; }
+  catch(e) { setSyncStatus(false); return false; }
+}
+async function fbRemove(path) {
+  try { await remove(ref(db, path)); return true; }
+  catch(e) { setSyncStatus(false); return false; }
+}
+
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+function subscribeAll() {
+  unsubEntries = onValue(ref(db, 'entries'), snap => {
+    const val = snap.val();
+    entries = val ? Object.entries(val).map(([id, e]) => ({ ...e, id })).sort((a,b) => b.fecha.localeCompare(a.fecha)) : [];
+    updateMonthFilter(); renderHistory(); renderAnalysis();
+  }, () => setSyncStatus(false));
+
+  unsubCierres = onValue(ref(db, 'cierres'), snap => {
+    const val = snap.val();
+    cierres = val ? Object.entries(val).map(([id, c]) => ({ ...c, id })).sort((a,b) => a.ym.localeCompare(b.ym)) : [];
+    renderCierresList(); renderProjection();
+  }, () => setSyncStatus(false));
+
+  unsubConfig = onValue(ref(db, 'config'), snap => {
+    const val = snap.val();
+    if (val) {
+      config = { ...config, ...val };
+      if (!config.inv) config.inv = { s:{saldo:0,tasa:0,aporte:0,saldo_cuenta:0}, p:{saldo:0,tasa:0,aporte:0,saldo_cuenta:0} };
+      if (!config.inv.s) config.inv.s = {saldo:0,tasa:0,aporte:0,saldo_cuenta:0};
+      if (!config.inv.p) config.inv.p = {saldo:0,tasa:0,aporte:0,saldo_cuenta:0};
+      if (!config.meta) config.meta = {s:0,p:0};
+      if (!config.growth) config.growth = {s:{ing:0,gst:0},p:{ing:0,gst:0}};
+    }
+    updateNamesUI(); renderProjForms();
+  }, () => setSyncStatus(false));
+}
+
+function unsubscribeAll() {
+  if (unsubEntries) { unsubEntries(); unsubEntries = null; }
+  if (unsubCierres) { unsubCierres(); unsubCierres = null; }
+  if (unsubConfig) { unsubConfig(); unsubConfig = null; }
+}
+
+// ─── LOGIN / LOGOUT ───────────────────────────────────────────────────────────
+window.login = function(u) {
+  currentUser = u;
+  entryUser = u;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const av = document.getElementById('hdr-avatar');
+  av.className = 'avatar-sm av-' + u;
+  av.textContent = getName(u).charAt(0).toUpperCase();
+  document.getElementById('hdr-name').textContent = getName(u);
+  setEntryUser(u);
+  updateMonthFilter();
+  subscribeAll();
+  setSyncStatus(true);
+};
+
+window.logout = function() {
+  unsubscribeAll();
+  currentUser = null;
+  entries = []; cierres = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+};
+
+// ─── NAMES UI ─────────────────────────────────────────────────────────────────
+function updateNamesUI() {
+  const ns = getName('s'), np = getName('p');
+  const ids = [['login-av-s',ns],['login-av-p',np],['seg-s-label',ns],['seg-p-label',np],['av-s-btn',ns],['av-p-btn',np],['pv-s-btn',ns],['pv-p-btn',np]];
+  ids.forEach(([id,n]) => { const el = document.getElementById(id); if (el) el.textContent = id.includes('av') || id.includes('btn') ? n.charAt(0).toUpperCase() : n; });
+  [['login-name-s',ns],['login-name-p',np],['av-s-lbl',ns],['av-p-lbl',np],['pv-s-lbl',ns],['pv-p-lbl',np],['fi-s-opt',ns],['fi-p-opt',np],['c-lbl-s',ns],['c-lbl-p',np]].forEach(([id,v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
+  document.getElementById('login-av-s').textContent = ns.charAt(0).toUpperCase();
+  document.getElementById('login-av-p').textContent = np.charAt(0).toUpperCase();
+}
+
+// ─── ENTRY USER ───────────────────────────────────────────────────────────────
+window.setEntryUser = function(u) {
+  entryUser = u;
+  ['s','p'].forEach(x => document.getElementById('usr-'+x).classList.toggle('on', x===u));
+};
+
+// ─── MONTH FILTER ─────────────────────────────────────────────────────────────
+function updateMonthFilter() {
+  const sel = document.getElementById('fi-mes'); const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  const csel = document.getElementById('c-mes'); csel.innerHTML = '';
+  const now = new Date();
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const ym = d.toISOString().slice(0,7);
+    const o = document.createElement('option'); o.value = ym; o.textContent = mesLabel(ym); csel.appendChild(o);
+  }
+  const set2 = new Set(entries.map(e => e.fecha.slice(0,7)));
+  [...set2].sort().reverse().forEach(m => {
+    const o = document.createElement('option'); o.value = m; o.textContent = mesLabel(m); sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+
+// ─── ADD ENTRY ────────────────────────────────────────────────────────────────
+window.addEntry = async function() {
+  const fecha = document.getElementById('f-fecha').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const monto = parseFloat(document.getElementById('f-monto').value);
+  const cat = document.getElementById('f-cat').value;
+  const tipo = document.getElementById('f-tipo').value;
+  if (!fecha || !desc || !monto || monto <= 0) { toast('Completa todos los campos'); return; }
+  const btn = document.getElementById('add-btn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  const id = 'e_' + Date.now();
+  const ok = await fbSet('entries/' + id, { fecha, desc, monto, cat, tipo, usr: entryUser, ts: Date.now() });
+  btn.innerHTML = 'Agregar';
+  btn.disabled = false;
+  if (ok) {
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-monto').value = '';
+    toast('Movimiento agregado');
+  } else { toast('Error al guardar. Revisa tu conexión.'); }
+};
+
+// ─── DELETE ENTRY ─────────────────────────────────────────────────────────────
+window.deleteEntry = async function(id) {
+  if (!confirm('¿Eliminar este movimiento?')) return;
+  await fbRemove('entries/' + id);
+  toast('Eliminado');
+};
+
+// ─── METRICS ──────────────────────────────────────────────────────────────────
+function getMetrics(arr) {
+  const ing = arr.filter(e => e.tipo==='ingreso').reduce((s,e) => s+e.monto, 0);
+  const gst = arr.filter(e => e.tipo==='gasto').reduce((s,e) => s+e.monto, 0);
+  return { ing, gst, bal: ing-gst, tasa: ing>0 ? (ing-gst)/ing*100 : 0 };
+}
+
+function renderMetricGrid(id, m) {
+  const t = m.bal >= 0 ? '#1D9E75' : '#E24B4A';
+  document.getElementById(id).innerHTML = `
+    <div class="mc"><div class="mc-l">Ingresos</div><div class="mc-v" style="color:#1D9E75">${fmtC(m.ing)}</div></div>
+    <div class="mc"><div class="mc-l">Gastos</div><div class="mc-v" style="color:#E24B4A">${fmtC(m.gst)}</div></div>
+    <div class="mc"><div class="mc-l">Balance</div><div class="mc-v" style="color:${t}">${fmtC(m.bal)}</div></div>
+    <div class="mc"><div class="mc-l">Tasa ahorro</div><div class="mc-v" style="color:${t}">${m.tasa.toFixed(1)}%</div></div>`;
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
+function renderHistory() {
+  const mes = document.getElementById('fi-mes').value;
+  const tipo = document.getElementById('fi-tipo').value;
+  const usr = document.getElementById('fi-usr').value;
+  const f = entries.filter(e => {
+    if (mes && !e.fecha.startsWith(mes)) return false;
+    if (tipo && e.tipo !== tipo) return false;
+    if (usr && e.usr !== usr) return false;
+    return true;
+  });
+  renderMetricGrid('mg-gastos', getMetrics(f));
+  const cont = document.getElementById('hist-list');
+  if (!f.length) { cont.innerHTML = '<div class="empty">Sin registros. Agrega tu primer movimiento.</div>'; return; }
+  cont.innerHTML = f.map(e => {
+    const lbl = new Date(e.fecha+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short'});
+    const color = e.tipo==='ingreso' ? '#1D9E75' : '#E24B4A';
+    const sign = e.tipo==='ingreso' ? '+' : '-';
+    const uname = getName(e.usr);
+    const uclass = e.usr==='s' ? 'av-s' : 'av-p';
+    return `<div class="hist-row">
+      <div class="hist-cat-dot" style="background:${CAT_COLORS[e.cat]||'#888'}"></div>
+      <div class="hist-info">
+        <div class="hist-desc">${e.desc}</div>
+        <div class="hist-meta">${lbl} · ${e.cat} · <span class="avatar-sm ${uclass}" style="width:14px;height:14px;font-size:8px;display:inline-flex">${uname.charAt(0).toUpperCase()}</span> ${uname}</div>
+      </div>
+      <div class="hist-amount" style="color:${color}">${sign}${fmtC(e.monto)}</div>
+      <button class="hist-del" onclick="deleteEntry('${e.id}')" aria-label="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── CIERRE ───────────────────────────────────────────────────────────────────
+function getCierreData(ym, ings, ingp) {
+  const me = entries.filter(e => e.fecha.startsWith(ym));
+  const gstS = me.filter(e => e.usr==='s' && e.tipo==='gasto').reduce((s,e) => s+e.monto, 0);
+  const gstP = me.filter(e => e.usr==='p' && e.tipo==='gasto').reduce((s,e) => s+e.monto, 0);
+  return { ym, ings, ingp, gstS, gstP, ahS: ings-gstS, ahP: ingp-gstP, ahTotal: (ings-gstS)+(ingp-gstP), ingTotal: ings+ingp, gstTotal: gstS+gstP };
+}
+
+window.previewCierre = function() {
+  const ym = document.getElementById('c-mes').value;
+  const ings = parseFloat(document.getElementById('c-ing-s').value)||0;
+  const ingp = parseFloat(document.getElementById('c-ing-p').value)||0;
+  const p = getCierreData(ym, ings, ingp);
+  const ns = getName('s'), np = getName('p');
+  document.getElementById('cierre-preview').innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px">
+      <div style="font-weight:600;margin-bottom:8px">${mesLabel(ym)}</div>
+      <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;align-items:center">
+        <div></div><div style="text-align:right;font-weight:600;color:var(--blue-dark)">${ns}</div><div style="text-align:right;font-weight:600;color:var(--pink-dark)">${np}</div>
+        <div style="color:var(--text2)">Ingresos</div><div style="text-align:right;color:#1D9E75">${fmtC(p.ings)}</div><div style="text-align:right;color:#1D9E75">${fmtC(p.ingp)}</div>
+        <div style="color:var(--text2)">Gastos</div><div style="text-align:right;color:#E24B4A">${fmtC(p.gstS)}</div><div style="text-align:right;color:#E24B4A">${fmtC(p.gstP)}</div>
+        <div style="color:var(--text2);font-weight:600">Ahorro</div>
+        <div style="text-align:right;font-weight:600;color:${p.ahS>=0?'#1D9E75':'#E24B4A'}">${fmtC(p.ahS)}</div>
+        <div style="text-align:right;font-weight:600;color:${p.ahP>=0?'#1D9E75':'#E24B4A'}">${fmtC(p.ahP)}</div>
+      </div>
+      <div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between">
+        <span style="color:var(--text2)">Ahorro familiar</span>
+        <span style="font-weight:600;color:${p.ahTotal>=0?'#1D9E75':'#E24B4A'}">${fmtC(p.ahTotal)}</span>
+      </div>
+    </div>`;
+};
+
+window.confirmarCierre = async function() {
+  const ym = document.getElementById('c-mes').value;
+  const existing = cierres.find(c => c.ym === ym);
+  if (existing && !confirm('Ya hay cierre para este mes. ¿Sobreescribir?')) return;
+  if (existing) await fbRemove('cierres/' + existing.id);
+  const ings = parseFloat(document.getElementById('c-ing-s').value)||0;
+  const ingp = parseFloat(document.getElementById('c-ing-p').value)||0;
+  const data = getCierreData(ym, ings, ingp);
+  const id = 'c_' + ym.replace('-','');
+  const ok = await fbSet('cierres/' + id, data);
+  if (ok) {
+    document.getElementById('cierre-preview').innerHTML = '';
+    document.getElementById('c-ing-s').value = '';
+    document.getElementById('c-ing-p').value = '';
+    toast('Cierre registrado. Proyección actualizada.');
+  } else { toast('Error al guardar'); }
+};
+
+window.deleteCierre = async function(id) {
+  if (!confirm('¿Eliminar este cierre?')) return;
+  await fbRemove('cierres/' + id);
+  toast('Cierre eliminado');
+};
+
+function renderCierresList() {
+  const cont = document.getElementById('cierres-list');
+  if (!cierres.length) { cont.innerHTML = '<div class="empty">Sin cierres registrados aún.</div>'; return; }
+  cont.innerHTML = [...cierres].reverse().map(c => `
+    <div class="cierre-row">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="cierre-mes">${mesLabel(c.ym)}</div>
+        <button class="btn danger-btn" onclick="deleteCierre('${c.id}')">✕</button>
+      </div>
+      <div class="cierre-grid">
+        <span style="color:var(--blue-dark);font-weight:600">${getName('s')}</span>
+        <span style="color:var(--pink-dark);font-weight:600">${getName('p')}</span>
+        <span>Ing <strong>${fmtC(c.ings)}</strong></span><span>Ing <strong>${fmtC(c.ingp)}</strong></span>
+        <span>Gst <strong>${fmtC(c.gstS)}</strong></span><span>Gst <strong>${fmtC(c.gstP)}</strong></span>
+        <span>Ah <strong style="color:${c.ahS>=0?'#1D9E75':'#E24B4A'}">${fmtC(c.ahS)}</strong></span>
+        <span>Ah <strong style="color:${c.ahP>=0?'#1D9E75':'#E24B4A'}">${fmtC(c.ahP)}</strong></span>
+      </div>
+    </div>`).join('');
+}
+
+// ─── ANÁLISIS ─────────────────────────────────────────────────────────────────
+function getAPeriodEntries() {
+  if (aperiod === 0) return entries;
+  const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-aperiod);
+  return entries.filter(e => e.fecha.slice(0,7) >= cutoff.toISOString().slice(0,7));
+}
+
+function renderAnalysis() {
+  const all = getAPeriodEntries();
+  const filtered = aView==='f' ? all : all.filter(e => e.usr===aView);
+  renderMetricGrid('mg-analisis', getMetrics(filtered));
+  const catTotals = {};
+  filtered.filter(e => e.tipo==='gasto').forEach(e => { catTotals[e.cat] = (catTotals[e.cat]||0) + e.monto; });
+  const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+  const maxC = sorted.length ? sorted[0][1] : 1;
+  document.getElementById('cat-bars').innerHTML = sorted.length
+    ? sorted.map(([cat,val]) => `<div class="bcat"><span class="bl">${cat}</span><div class="bfw"><div class="bf" style="width:${Math.round(val/maxC*100)}%;background:${CAT_COLORS[cat]||'#888'}"></div></div><span class="ba">${fmtC(val)}</span></div>`).join('')
+    : '<div class="empty">Sin gastos en el período</div>';
+  const monthMap = {};
+  filtered.forEach(e => {
+    const m = e.fecha.slice(0,7);
+    if (!monthMap[m]) monthMap[m] = { ing:0, gst:0 };
+    if (e.tipo==='ingreso') monthMap[m].ing += e.monto; else monthMap[m].gst += e.monto;
+  });
+  const months = Object.keys(monthMap).sort();
+  if (evoChart) evoChart.destroy();
+  if (months.length) {
+    evoChart = new Chart(document.getElementById('evo-chart').getContext('2d'), {
+      type: 'bar', data: { labels: months.map(m => mesShort(m)), datasets: [
+        { label:'Ingresos', data:months.map(m=>monthMap[m].ing), backgroundColor:'#5DCAA544', borderColor:'#1D9E75', borderWidth:1.5 },
+        { label:'Gastos', data:months.map(m=>monthMap[m].gst), backgroundColor:'#F0997B44', borderColor:'#D85A30', borderWidth:1.5 }
+      ]},
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:45}},y:{ticks:{callback:v=>fmtC(v),font:{size:10}}}}}
+    });
+  }
+  const cierreMap = {};
+  cierres.forEach(c => { cierreMap[c.ym] = aView==='f' ? c.ahTotal : aView==='s' ? c.ahS : c.ahP; });
+  const maxA = Math.max(...months.map(m => Math.abs(monthMap[m].ing-monthMap[m].gst)), ...Object.values(cierreMap).map(Math.abs), 1);
+  document.getElementById('ahorro-bars').innerHTML = months.length
+    ? months.map(m => {
+        const ah = cierreMap[m] !== undefined ? cierreMap[m] : monthMap[m].ing-monthMap[m].gst;
+        const hasCierre = cierreMap[m] !== undefined;
+        const c = ah>=0 ? '#1D9E75' : '#E24B4A';
+        return `<div class="arow"><span class="an">${mesShort(m)}</span><div class="abw"><div class="ab" style="width:${Math.round(Math.abs(ah)/maxA*100)}%;background:${c}"></div></div><span class="av" style="color:${c}">${ah>=0?'+':''}${fmtC(ah)}</span>${hasCierre?'<span class="badge" style="background:var(--green-light);color:var(--green-dark);font-size:10px">cierre</span>':''}</div>`;
+      }).join('')
+    : '<div class="empty">Sin datos</div>';
+}
+
+window.setAView = function(v, btn) {
+  aView = v;
+  ['av-s','av-p','av-f'].forEach(id => document.getElementById(id).classList.remove('on-s','on-p','on-f'));
+  btn.classList.add({s:'on-s',p:'on-p',f:'on-f'}[v]);
+  renderAnalysis();
+};
+window.setAPeriod = function(p, btn) {
+  aperiod = p;
+  ['ap-3m','ap-6m','ap-12m','ap-all'].forEach(id => document.getElementById(id).classList.remove('on'));
+  btn.classList.add('on');
+  renderAnalysis();
+};
+
+// ─── PROYECCIÓN ──────────────────────────────────────────────────────────────
+function getProj3mBase(usr) {
+  const uc = cierres.map(c => ({
+    ym: c.ym,
+    ing: usr==='f' ? c.ingTotal : usr==='s' ? c.ings : c.ingp,
+    gst: usr==='f' ? c.gstTotal : usr==='s' ? c.gstS : c.gstP,
+    ah:  usr==='f' ? c.ahTotal  : usr==='s' ? c.ahS  : c.ahP
+  }));
+  if (!uc.length) return null;
+  const last3 = uc.slice(-3);
+  return {
+    avgIng: Math.round(last3.reduce((s,c)=>s+c.ing,0)/last3.length),
+    avgGst: Math.round(last3.reduce((s,c)=>s+c.gst,0)/last3.length),
+    n: last3.length, months: last3.map(c=>c.ym)
+  };
+}
+
+function renderProjForms() {
+  const usr = pView==='f' ? 'f' : pView;
+  const base = getProj3mBase(usr);
+  const infoEl = document.getElementById('proj-info');
+  if (base) {
+    infoEl.innerHTML = `<div class="proj-info">Basado en ${base.n} cierre${base.n>1?'s':''} reales (${base.months.map(mesShort).join(', ')}). Ing prom: ${fmtC(base.avgIng)} · Gst prom: ${fmtC(base.avgGst)}</div>`;
+  } else {
+    infoEl.innerHTML = `<div class="proj-info">Sin cierres aún. Ingresa valores base manuales para proyectar.</div>`;
+  }
+
+  if (pView === 'f') {
+    const bs = getProj3mBase('s'), bp = getProj3mBase('p');
+    const metaTotal = (config.meta.s||0)+(config.meta.p||0);
+    document.getElementById('proj-forms').innerHTML = `
+      <div class="card"><div class="card-title">Parámetros familiares</div>
+        <div class="split2" style="margin-bottom:10px">
+          <div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span class="avatar-sm av-s" style="width:20px;height:20px;font-size:9px">${getName('s').charAt(0).toUpperCase()}</span><span style="font-size:13px;font-weight:600">${getName('s')}</span></div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8">${bs?`Ing: <strong style="color:var(--text)">${fmtC(bs.avgIng)}</strong><br>Gst: <strong style="color:var(--text)">${fmtC(bs.avgGst)}</strong>`:'Sin cierres'}<br>Inv: <strong style="color:var(--amber-dark)">${fmtC(config.inv.s.saldo||0)}</strong> · ${config.inv.s.tasa||0}%</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span class="avatar-sm av-p" style="width:20px;height:20px;font-size:9px">${getName('p').charAt(0).toUpperCase()}</span><span style="font-size:13px;font-weight:600">${getName('p')}</span></div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8">${bp?`Ing: <strong style="color:var(--text)">${fmtC(bp.avgIng)}</strong><br>Gst: <strong style="color:var(--text)">${fmtC(bp.avgGst)}</strong>`:'Sin cierres'}<br>Inv: <strong style="color:var(--amber-dark)">${fmtC(config.inv.p.saldo||0)}</strong> · ${config.inv.p.tasa||0}%</div>
+          </div>
+        </div>
+        <div class="form-field"><label>Meta de patrimonio familiar (CLP)</label><input type="number" id="pi-meta-f" value="${metaTotal||''}" placeholder="0" inputmode="numeric" onchange="config.meta.s=parseFloat(this.value)||0;config.meta.p=0;fbSet('config/meta',config.meta);renderProjection()"></div>
+        <div class="form-row">
+          <div class="form-field" style="margin:0"><label>Crecimiento ingresos anual (%)</label><input type="number" id="pi-gi-f" value="${config.growth.s.ing||''}" placeholder="0" step="0.5" onchange="config.growth.s.ing=parseFloat(this.value)||0;config.growth.p.ing=parseFloat(this.value)||0;fbSet('config/growth',config.growth);renderProjection()"></div>
+          <div class="form-field" style="margin:0"><label>Inflación gastos anual (%)</label><input type="number" id="pi-gg-f" value="${config.growth.s.gst||''}" placeholder="0" step="0.5" onchange="config.growth.s.gst=parseFloat(this.value)||0;config.growth.p.gst=parseFloat(this.value)||0;fbSet('config/growth',config.growth);renderProjection()"></div>
+        </div>
+      </div>`;
+  } else {
+    const k = pView;
+    const inv = config.inv[k] || {};
+    document.getElementById('proj-forms').innerHTML = `
+      <div class="card"><div class="card-title">Parámetros — ${getName(k)}</div>
+        ${!base ? `<div class="form-row" style="margin-bottom:10px">
+          <div class="form-field" style="margin:0"><label>Ingreso base (CLP)</label><input type="number" id="pi-ing" placeholder="0" inputmode="numeric" onchange="renderProjection()"></div>
+          <div class="form-field" style="margin:0"><label>Gasto base (CLP)</label><input type="number" id="pi-gst" placeholder="0" inputmode="numeric" onchange="renderProjection()"></div>
+        </div>` : ''}
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-field" style="margin:0"><label>Meta patrimonio (CLP)</label><input type="number" id="pi-meta" value="${config.meta[k]||''}" placeholder="0" inputmode="numeric" onchange="config.meta['${k}']=parseFloat(this.value)||0;fbSet('config/meta',config.meta);renderProjection()"></div>
+          <div class="form-field" style="margin:0"><label>Saldo cuenta hoy (CLP)</label><input type="number" id="pi-saldo" value="${inv.saldo_cuenta||''}" placeholder="0" inputmode="numeric" onchange="config.inv['${k}'].saldo_cuenta=parseFloat(this.value)||0;fbSet('config/inv',config.inv);renderProjection()"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-field" style="margin:0"><label>Crecimiento ingresos (%)</label><input type="number" id="pi-gi" value="${config.growth[k].ing||''}" placeholder="0" step="0.5" onchange="config.growth['${k}'].ing=parseFloat(this.value)||0;fbSet('config/growth',config.growth);renderProjection()"></div>
+          <div class="form-field" style="margin:0"><label>Inflación gastos (%)</label><input type="number" id="pi-gg" value="${config.growth[k].gst||''}" placeholder="0" step="0.5" onchange="config.growth['${k}'].gst=parseFloat(this.value)||0;fbSet('config/growth',config.growth);renderProjection()"></div>
+        </div>
+        <div class="inv-section">
+          <div class="inv-label">Inversiones actuales</div>
+          <div class="form-row3">
+            <div class="form-field" style="margin:0"><label>Monto invertido (CLP)</label><input type="number" id="pi-inv-s" value="${inv.saldo||''}" placeholder="0" inputmode="numeric" onchange="config.inv['${k}'].saldo=parseFloat(this.value)||0;fbSet('config/inv',config.inv);renderProjection()"></div>
+            <div class="form-field" style="margin:0"><label>Rentabilidad anual (%)</label><input type="number" id="pi-inv-t" value="${inv.tasa||''}" placeholder="0" step="0.5" onchange="config.inv['${k}'].tasa=parseFloat(this.value)||0;fbSet('config/inv',config.inv);renderProjection()"></div>
+            <div class="form-field" style="margin:0"><label>Aporte mensual (CLP)</label><input type="number" id="pi-inv-a" value="${inv.aporte||''}" placeholder="0" inputmode="numeric" onchange="config.inv['${k}'].aporte=parseFloat(this.value)||0;fbSet('config/inv',config.inv);renderProjection()"></div>
+          </div>
+        </div>
+      </div>`;
+  }
+  renderProjection();
+}
+
+function getProjParams() {
+  const usr = pView==='f' ? 'f' : pView;
+  const base = getProj3mBase(usr);
+  let ingBase, gstBase;
+  if (base) { ingBase = base.avgIng; gstBase = base.avgGst; }
+  else { ingBase = parseFloat(document.getElementById('pi-ing')?.value)||0; gstBase = parseFloat(document.getElementById('pi-gst')?.value)||0; }
+  const isFam = pView==='f';
+  return {
+    ingBase, gstBase,
+    invSaldo: isFam ? (config.inv.s.saldo||0)+(config.inv.p.saldo||0) : config.inv[pView].saldo||0,
+    invTasa:  isFam ? ((config.inv.s.tasa||0)+(config.inv.p.tasa||0))/2 : config.inv[pView].tasa||0,
+    invAporte:isFam ? (config.inv.s.aporte||0)+(config.inv.p.aporte||0) : config.inv[pView].aporte||0,
+    saldoIni: isFam ? (config.inv.s.saldo_cuenta||0)+(config.inv.p.saldo_cuenta||0) : config.inv[pView].saldo_cuenta||0,
+    meta:     isFam ? (config.meta.s||0)+(config.meta.p||0) : config.meta[pView]||0,
+    growIng:  isFam ? ((config.growth.s.ing||0)+(config.growth.p.ing||0))/2 : config.growth[pView].ing||0,
+    growGst:  isFam ? ((config.growth.s.gst||0)+(config.growth.p.gst||0))/2 : config.growth[pView].gst||0,
+  };
+}
+
+function renderProjection() {
+  const p = getProjParams();
+  if (!p.ingBase && !p.gstBase && !p.invSaldo) {
+    document.getElementById('mg-proj').innerHTML = '';
+    document.getElementById('proj-table').innerHTML = '<div class="empty">Sin datos. Registra cierres o ingresa valores base.</div>';
+    if (projChart) { projChart.destroy(); projChart = null; }
+    return;
+  }
+  const invRateM = p.invTasa/100/12;
+  const growIngM = (1+p.growIng/100)**(1/12)-1;
+  const growGstM = (1+p.growGst/100)**(1/12)-1;
+
+  document.getElementById('proj-legend').innerHTML = `
+    <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block"></span>Ahorro flujo</span>
+    <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:9px;height:9px;border-radius:2px;background:#EF9F27;display:inline-block"></span>Inversión</span>
+    <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:9px;height:9px;border-radius:2px;background:#7F77DD;display:inline-block"></span>Patrimonio</span>`;
+
+  if (horizon === '12m') {
+    document.getElementById('proj-chart-title').textContent = 'Patrimonio — 12 meses';
+    document.getElementById('proj-table-title').textContent = 'Detalle mensual';
+    let sc = p.saldoIni, inv = p.invSaldo, totalAh = 0, mMeta = 0;
+    const now = new Date(); const rows = [];
+    for (let i=0; i<12; i++) {
+      const ingM = Math.round(p.ingBase*(1+growIngM)**i);
+      const gstM = Math.round(p.gstBase*(1+growGstM)**i);
+      const ah = ingM-gstM; sc+=ah; totalAh+=ah;
+      inv = Math.round(inv*(1+invRateM)+p.invAporte);
+      const pat = Math.round(sc+inv);
+      if (!mMeta && pat>=p.meta && p.meta>0) mMeta=i+1;
+      const mi=(now.getMonth()+i)%12; const yr=now.getFullYear()+Math.floor((now.getMonth()+i)/12);
+      rows.push({lbl:MESES_ES[mi]+' '+String(yr).slice(2),ing:ingM,gst:gstM,ah:Math.round(ah),sc:Math.round(sc),inv,pat,ok:p.meta>0&&pat>=p.meta});
+    }
+    const avgAh = Math.round(totalAh/12);
+    const rentInv = rows[11] ? rows[11].inv-p.invSaldo-p.invAporte*12 : 0;
+    document.getElementById('mg-proj').innerHTML = `
+      <div class="mc"><div class="mc-l">Ahorro prom./mes</div><div class="mc-v" style="color:${avgAh>=0?'#1D9E75':'#E24B4A'}">${fmtC(avgAh)}</div></div>
+      <div class="mc"><div class="mc-l">Patrimonio en 12m</div><div class="mc-v">${fmtC(rows[11]?.pat||0)}</div></div>
+      <div class="mc"><div class="mc-l">Rentabilidad inv.</div><div class="mc-v" style="color:var(--amber-dark)">${fmtC(Math.round(rentInv))}</div></div>
+      <div class="mc"><div class="mc-l">Meta en</div><div class="mc-v">${p.meta>0?(mMeta?mMeta+' meses':'> 12m'):'—'}</div></div>`;
+    if (projChart) projChart.destroy();
+    projChart = new Chart(document.getElementById('proj-chart').getContext('2d'), {
+      type:'line', data:{labels:rows.map(r=>r.lbl),datasets:[
+        {label:'Ahorro',data:rows.map(r=>r.sc),borderColor:'#1D9E75',backgroundColor:'#1D9E7514',fill:true,tension:.3,borderWidth:2,pointRadius:3},
+        {label:'Inversión',data:rows.map(r=>r.inv),borderColor:'#EF9F27',backgroundColor:'#EF9F2714',fill:true,tension:.3,borderWidth:2,pointRadius:3,borderDash:[5,3]},
+        {label:'Patrimonio',data:rows.map(r=>r.pat),borderColor:'#7F77DD',fill:false,tension:.3,borderWidth:2.5,pointRadius:4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:45}},y:{ticks:{callback:v=>fmtC(v),font:{size:10}}}}}
+    });
+    document.getElementById('proj-table').innerHTML = `<table>
+      <thead><tr><th>Mes</th><th style="text-align:right">Ing</th><th style="text-align:right">Gst</th><th style="text-align:right">Ah</th><th style="text-align:right;color:var(--amber-dark)">Inv</th><th style="text-align:right;color:#534AB7">Total</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr style="${r.ok?'background:var(--surface2)':''}">
+        <td style="font-weight:500">${r.lbl}${r.ok?'<span style="color:#1D9E75;font-size:10px"> ✓</span>':''}</td>
+        <td style="text-align:right;color:#1D9E75">${fmtC(r.ing)}</td><td style="text-align:right;color:#E24B4A">${fmtC(r.gst)}</td>
+        <td style="text-align:right;font-weight:600;color:${r.ah>=0?'#1D9E75':'#E24B4A'}">${r.ah>=0?'+':''}${fmtC(r.ah)}</td>
+        <td style="text-align:right;color:var(--amber-dark)">${fmtC(r.inv)}</td>
+        <td style="text-align:right;font-weight:600;color:#534AB7">${fmtC(r.pat)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } else {
+    document.getElementById('proj-chart-title').textContent = 'Patrimonio — 20 años';
+    document.getElementById('proj-table-title').textContent = 'Resultado anual';
+    let sc = p.saldoIni, inv = p.invSaldo, mMeta = 0;
+    const now = new Date(); const rows = [];
+    for (let y=1; y<=20; y++) {
+      let ahAnual=0,ingAnual=0,gstAnual=0;
+      for (let m=0; m<12; m++) {
+        const mo=(y-1)*12+m;
+        const ingM=Math.round(p.ingBase*(1+growIngM)**mo);
+        const gstM=Math.round(p.gstBase*(1+growGstM)**mo);
+        const ah=ingM-gstM; sc+=ah; ahAnual+=ah; ingAnual+=ingM; gstAnual+=gstM;
+        inv=Math.round(inv*(1+invRateM)+p.invAporte);
+      }
+      const pat=Math.round(sc+inv);
+      if (!mMeta && pat>=p.meta && p.meta>0) mMeta=y;
+      rows.push({lbl:String(now.getFullYear()+y),yr:y,ing:Math.round(ingAnual),gst:Math.round(gstAnual),ah:Math.round(ahAnual),sc:Math.round(sc),inv:Math.round(inv),pat,ok:p.meta>0&&pat>=p.meta,milestone:y===5||y===10||y===15||y===20});
+    }
+    document.getElementById('mg-proj').innerHTML = `
+      <div class="mc"><div class="mc-l">Patrimonio 5 años</div><div class="mc-v">${fmtM(rows[4]?.pat||0)}</div></div>
+      <div class="mc"><div class="mc-l">Patrimonio 10 años</div><div class="mc-v">${fmtM(rows[9]?.pat||0)}</div></div>
+      <div class="mc"><div class="mc-l">Patrimonio 20 años</div><div class="mc-v">${fmtM(rows[19]?.pat||0)}</div></div>
+      <div class="mc"><div class="mc-l">Meta en</div><div class="mc-v">${p.meta>0?(mMeta?'Año '+mMeta:'> 20a'):'—'}</div></div>`;
+    if (projChart) projChart.destroy();
+    projChart = new Chart(document.getElementById('proj-chart').getContext('2d'), {
+      type:'line', data:{labels:rows.map(r=>r.lbl),datasets:[
+        {label:'Ahorro',data:rows.map(r=>r.sc),borderColor:'#1D9E75',backgroundColor:'#1D9E7514',fill:true,tension:.3,borderWidth:2,pointRadius:4},
+        {label:'Inversión',data:rows.map(r=>r.inv),borderColor:'#EF9F27',backgroundColor:'#EF9F2714',fill:true,tension:.3,borderWidth:2,pointRadius:4,borderDash:[5,3]},
+        {label:'Patrimonio',data:rows.map(r=>r.pat),borderColor:'#7F77DD',fill:false,tension:.3,borderWidth:2.5,pointRadius:5}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},autoSkip:false}},y:{ticks:{callback:v=>fmtM(v),font:{size:10}}}}}
+    });
+    document.getElementById('proj-table').innerHTML = `<table>
+      <thead><tr><th>Año</th><th style="text-align:right">Ing anual</th><th style="text-align:right">Gst anual</th><th style="text-align:right">Ahorro</th><th style="text-align:right;color:var(--amber-dark)">Inv acum.</th><th style="text-align:right;color:#534AB7">Patrimonio</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr class="${r.milestone||r.ok?'milestone':''}">
+        <td style="font-weight:${r.milestone?'600':'400'}">${r.lbl}${r.ok?'<span style="color:#1D9E75;font-size:10px"> ✓</span>':''}</td>
+        <td style="text-align:right;color:#1D9E75">${fmtM(r.ing)}</td><td style="text-align:right;color:#E24B4A">${fmtM(r.gst)}</td>
+        <td style="text-align:right;font-weight:600;color:${r.ah>=0?'#1D9E75':'#E24B4A'}">${r.ah>=0?'+':''}${fmtM(r.ah)}</td>
+        <td style="text-align:right;color:var(--amber-dark)">${fmtM(r.inv)}</td>
+        <td style="text-align:right;font-weight:600;color:#534AB7">${fmtM(r.pat)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+}
+
+window.setPView = function(v, btn) {
+  pView = v;
+  ['pv-s','pv-p','pv-f'].forEach(id => document.getElementById(id).classList.remove('on-s','on-p','on-f'));
+  btn.classList.add({s:'on-s',p:'on-p',f:'on-f'}[v]);
+  renderProjForms();
+};
+window.setHorizon = function(h, btn) {
+  horizon = h;
+  ['hz-12m','hz-20y'].forEach(id => document.getElementById(id).classList.remove('on'));
+  btn.classList.add('on');
+  renderProjection();
+};
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+window.switchTab = function(t) {
+  ['gastos','cierre','analisis','proyeccion'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+  });
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', ['gastos','cierre','analisis','proyeccion'][i]===t));
+  if (t==='analisis') renderAnalysis();
+  if (t==='proyeccion') renderProjForms();
+  if (t==='cierre') renderCierresList();
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
+updateNamesUI();
+</script>
+</body>
+</html>
